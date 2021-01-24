@@ -1,0 +1,6 @@
+#!/usr/bin/sh
+mkdir "$1"
+cd "$1"
+printf "namespace mpl = boost::mpl;\n\nint main()\n{\n}\n" > main.cpp
+printf "run: build\n\t./task.out\n\nbuild: main.cpp\n\tg++ main.cpp -Wall -o task.out\n" > Makefile
+vim main.cpp
