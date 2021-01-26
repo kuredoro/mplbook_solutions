@@ -1,5 +1,5 @@
 #include <boost/mpl/bool.hpp>
-#include <boost/mpl/bool_fwd.hpp>
+#include <boost/mpl/if.hpp>
 
 namespace mpl = boost::mpl;
 
@@ -31,31 +31,28 @@ struct logical_or_impl<A, false>
 {};
 
 
-/***************
- * Logical And *
- ***************/
-template <class A, bool v, class ...Rest>
-struct logical_and_impl;
+/*******************************************
+ * Logical And                             *
+ * Alternative implementation using mpl if *
+ *******************************************/
+
+template <class ...Args>
+struct logical_and;
 
 template <class A, class ...Rest>
-struct logical_and
-    : logical_and_impl<A, A::value, Rest...>
+struct logical_and<A, Rest...>
+    : mpl::if_<
+        A,
+        logical_and<Rest...>,
+        mpl::false_
+      >::type
 {};
 
-template <class A, class ...Rest>
-struct logical_and_impl<A, false, Rest...>
-    : mpl::bool_<false>
+template <>
+struct logical_and<>
+    : mpl::true_
 {};
 
-template <class A, class B, class ...Rest>
-struct logical_and_impl<A, true, B, Rest...>
-    : logical_and<B, Rest...>
-{};
-
-template <class A>
-struct logical_and_impl<A, true>
-    : mpl::bool_<true>
-{};
 
 
 int main()
