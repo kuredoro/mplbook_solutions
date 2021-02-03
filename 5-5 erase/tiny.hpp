@@ -241,15 +241,15 @@ struct mpl::at_impl<tiny_tag>
 };
 
 static_assert(
-    mpl::at<tiny123, mpl::int_<0>>::type::value == 0
+    mpl::at_c<tiny123, 0>::type::value == 0
 );
 
 static_assert(
-    mpl::at<tiny123, mpl::int_<1>>::type::value == 1
+    mpl::at_c<tiny123, 1>::type::value == 1
 );
 
 static_assert(
-    mpl::at<tiny123, mpl::int_<2>>::type::value == 2
+    mpl::at_c<tiny123, 2>::type::value == 2
 );
 
 /*
