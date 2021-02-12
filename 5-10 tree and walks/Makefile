@@ -1,5 +1,5 @@
 run: build
 	./task.out
 
-build: main.cpp
-	clang++ main.cpp -Wall -o task.out
+build: inorder.cpp
+	clang++ inorder.cpp -Wall -o task.out

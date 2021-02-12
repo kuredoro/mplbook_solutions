@@ -1,5 +1,6 @@
+#include "tree.h"
+
 #include <type_traits>
-#include <boost/mpl/integral_c.hpp>
 #include <boost/mpl/plus.hpp>
 #include <boost/mpl/iterator_tags.hpp>
 #include <boost/mpl/next.hpp>
@@ -11,45 +12,15 @@
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/advance.hpp>
 
-namespace mpl = boost::mpl;
-
 #include <boost/mpl/placeholders.hpp>
 using namespace mpl::placeholders;
 
-template <class T>
-struct tree_size;
 
-template <class Node, class Left, class Right>
-struct tree
-{
-    using size = tree_size<tree<Node, Left, Right>>;
-    using left = Left;
-    using right = Right;
-};
+template <class ...Stack>
+struct inorder_iterator;
 
-template<int N>
-using number = mpl::integral_c<int, N>;
-
-using treeSeq =
-    tree<
-        double,
-        tree<void*, int, long>,
-        char
-    >;
-
-template <class T>
-struct tree_size
-    : number<1>
-{};
-
-template <class Node, class Left, class Right>
-struct tree_size<tree<Node, Left, Right>>
-    : mpl::plus<typename mpl::plus<tree_size<Left>, tree_size<Right>>::type, number<1>>
-{};
-
-static_assert(tree_size<tree<int, int, int>>::value == 3);
-static_assert(tree_size<treeSeq>::value == 5);
-
+/// These are metaprogramming values
+/// They are the terminating cases for the inheritance recursion used below.
 
 template <class ...Stack>
 struct inorder_iterator
@@ -58,21 +29,20 @@ struct inorder_iterator
     using type = inorder_iterator<Stack...>;
 };
 
+/// The nodes that are visited twice are the ones we iterate on.
+/// Hence iterators pointing to these nodes should be metavalues.
+template <class Leaf, class ...Stack>
+struct inorder_iterator<number<1>, Leaf, Stack...>
+{
+    using category = mpl::forward_iterator_tag;
+    using type = inorder_iterator<number<1>, Leaf, Stack...>;
+};
+
 template <class Leaf, class ...Stack>
 struct inorder_iterator<number<0>, Leaf, Stack...>
     : inorder_iterator<number<1>, Leaf, Stack...>
-{
-    using category = mpl::forward_iterator_tag;
-    using type = typename inorder_iterator<number<1>, Leaf, Stack...>::type;
-};
+{};
 
-static_assert(
-    std::is_same<
-        inorder_iterator<number<0>, int>::type,
-        inorder_iterator<number<1>, int>
-    >(),
-    ""
-);
 
 template <class Node, class Left, class Right, class ...Stack>
 struct inorder_iterator<number<0>, tree<Node, Left, Right>, Stack...>
@@ -81,23 +51,12 @@ struct inorder_iterator<number<0>, tree<Node, Left, Right>, Stack...>
         number<0>, tree<Node, Left, Right>, 
         Stack...
     >
-{
-    using category = mpl::forward_iterator_tag;
-    using type = 
-        typename inorder_iterator<
-            number<0>, Left, 
-            number<0>, tree<Node, Left, Right>, 
-            Stack...
-        >::type;
-};
+{};
 
-template <class TraversedTree, class Branch, class Tree, class ...Stack>
-struct inorder_iterator<number<2>, TraversedTree, Branch, Tree, Stack...>
-    : inorder_iterator<typename mpl::plus<Branch, number<1>>::type, Tree, Stack...>
-{
-    using category = mpl::forward_iterator_tag;
-    using type = typename inorder_iterator<typename mpl::plus<Branch, number<1>>::type, Tree, Stack...>::type;
-};
+template <class TraversedTree, class VisitCount, class Tree, class ...Stack>
+struct inorder_iterator<number<2>, TraversedTree, VisitCount, Tree, Stack...>
+    : inorder_iterator<typename mpl::plus<VisitCount, number<1>>::type, Tree, Stack...>
+{};
 
 // -------------------------------------------------------------------------
 
@@ -173,7 +132,8 @@ static_assert(
     mpl::equal<
         mpl::vector<int, void*, long, double, char>,
         inorder_view<treeSeq>
-    >::type::value
+    >::type::value,
+    ""
 );
 
 int main()
