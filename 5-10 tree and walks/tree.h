@@ -14,17 +14,11 @@ struct tree
     using size = tree_size<tree<Node, Left, Right>>;
     using left = Left;
     using right = Right;
+    using payload = Node;
 };
 
 template<int N>
 using number = mpl::integral_c<int, N>;
-
-using treeSeq =
-    tree<
-        double,
-        tree<void*, int, long>,
-        char
-    >;
 
 template <class T>
 struct tree_size
@@ -37,4 +31,4 @@ struct tree_size<tree<Node, Left, Right>>
 {};
 
 static_assert(tree_size<tree<int, int, int>>::value == 3, "");
-static_assert(tree_size<treeSeq>::value == 5, "");
+static_assert(tree_size<tree<int, tree<int, int, int>, int>>::value == 5, "");
