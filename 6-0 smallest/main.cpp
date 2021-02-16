@@ -9,6 +9,7 @@
 #include <boost/mpl/size_t.hpp>
 #include <boost/mpl/greater.hpp>
 #include <boost/mpl/if.hpp>
+#include <boost/mpl/front.hpp>
 namespace mpl = boost::mpl;
 
 #include <boost/mpl/placeholders.hpp>
@@ -19,7 +20,7 @@ using smallest =
     mpl::copy<
         Seq,
         mpl::inserter<
-            typename mpl::deref<typename mpl::begin<Seq>::type>::type,
+            typename mpl::front<Seq>::type,
             mpl::if_<
                 mpl::greater<
                     mpl::sizeof_<_1>,
