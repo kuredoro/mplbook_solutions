@@ -20,6 +20,18 @@ namespace mpl = boost::mpl;
 using namespace mpl::placeholders;
 
 
+/// is_same produces a valid mpl integral constant,
+/// unlike std::is_same which produces std::integral_constant
+/// that's missing a `tag` field and whole bunch of other stuff
+/// See https://www.boost.org/doc/libs/1_75_0/libs/mpl/doc/refmanual/integral-constant.html
+/// and https://en.cppreference.com/w/cpp/types/integral_constant
+template <class A, class B>
+using is_same =
+    mpl::bool_<
+        std::is_same<A, B>::value
+    >;
+
+
 template <class X, class Denumerator>
 using is_divisible =
     mpl::equal_to<
@@ -27,57 +39,43 @@ using is_divisible =
         mpl::int_<0>
     >;
 
-/// When I wrote this, there was just is_not_divisible_by_any, which was a type
-/// alias. The problem that I had is that this type alias was used in another
-/// lambda (e.g., gen_primes_less_than) which defined N to be a placeholder.
-/// It essentially made it impossible to resolve the lambda's placeholders,
-/// and the mpl::protect could be of no help, since the two placeholders
-/// were intertwined within one template instantiation.
-///
-/// Then it turned that std::integral_constant doesn't interoperate with MPL...
-/// But due to this the code needed to be changed to this version.
-/// It turned out that this constexpr bool does a great job protecting the
-/// _1 placeholder from any other lambdas into which this template might be
-/// nested.
-template <class N, class Divs>
-constexpr bool is_not_divisible_by_any_v =
-    std::is_same<
-        typename mpl::find_if<
-            Divs,
-            is_divisible<N, _1>
-        >::type,
-        typename mpl::end<Divs>::type
-    >::value;
-
-
-static_assert(
-    is_not_divisible_by_any_v<mpl::int_<5>, mpl::vector_c<int, 2, 3>>,
-    ""
-);
-
-static_assert(
-    is_not_divisible_by_any_v<mpl::int_<7>, mpl::vector_c<int, 2, 3>>,
-    ""
-);
-
 // -----------------------------------------------------------------------------
 
+/// is_not_divisible_by_any is not a type alias because if it was, it would be
+/// impossible to use it inside any other lambda if N to be a placeholder.
+/// The placeholders from the outer lambda and this lambda would be merged
+/// together inside is_divisible and on lambda's call both of them would be
+/// filled with the first argument. But what _we_ want is only the first
+/// placeholder to be replaced -- N.
 template <class N, class Divs>
 struct is_not_divisible_by_any
 {
-    /// Soo... std::integral_constant is not a model of mpl's integral constant
-    /// since it doesn't have a `tag` alias inside of it.
-    /// https://www.boost.org/doc/libs/1_75_0/libs/mpl/doc/refmanual/integral-constant.html
-    /// Hence, I'm wrapping its raw boolean value into a bool_, so that the mpl::equal
-    /// succeeds.
-    using type = mpl::bool_<is_not_divisible_by_any_v<N, Divs>>;
+    using type =
+        typename is_same<
+            typename mpl::find_if<
+                Divs,
+                is_divisible<N, _1>
+            >::type,
+            typename mpl::end<Divs>::type
+        >::type;
+
+    static constexpr bool value = type::value;
 };
 
 
 static_assert(
+    is_not_divisible_by_any<mpl::int_<5>, mpl::vector_c<int, 2, 3>>::value,
+    ""
+);
+
+static_assert(
+    is_not_divisible_by_any<mpl::int_<7>, mpl::vector_c<int, 2, 3>>::value,
+    ""
+);
+
+static_assert(
     mpl::equal<
         mpl::transform<
-            //mpl::range<int, 2, 4>,
             mpl::vector_c<int, 2, 3, 4, 5, 6, 7, 8, 9, 10>,
             is_not_divisible_by_any<_, mpl::vector_c<int, 2, 3>>
         >::type,
@@ -126,8 +124,8 @@ static_assert(
 );
 
 
-/// So, um, even this code won't print any warnings.
-/// Also, there's no mpl::print in the latest (1.75) reference.
+/// So, um, even this code won't print any warnings. (Although book says it
+/// should). Also, there's no mpl::print in the latest (1.75) reference.
 ///
 /// #include <boost/mpl/range_c.hpp>
 /// #include <boost/mpl/fold.hpp>
